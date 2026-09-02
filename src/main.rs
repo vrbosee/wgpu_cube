@@ -213,7 +213,6 @@ impl<'window> State<'window> {
     }
 
     fn render(&mut self) {
-        // Get the current frame texture from the surface.
         let output = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
             wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => {
@@ -245,10 +244,10 @@ impl<'window> State<'window> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 0.0,
                         }),
                         store: wgpu::StoreOp::Store,
                     },
@@ -267,7 +266,6 @@ impl<'window> State<'window> {
         }
         self.queue.submit(Some(encoder.finish()));
 
-        // Present the frame to the screen.
         output.present();
     }
 
@@ -288,111 +286,55 @@ struct Vertex {
     color: [f32; 3],
 }
 
+fn gradient_color(pos: [f32; 3]) -> [f32; 3] {
+    [
+        (pos[0] + 1.0) * 0.5,
+        (pos[1] + 1.0) * 0.5,
+        (pos[2] + 1.0) * 0.5,
+    ]
+}
+
 fn create_vertices() -> (Vec<Vertex>, Vec<u16>) {
-    let vertex_data = [
+    let positions = [
         // top (0, 0, 1)
-        Vertex {
-            vertices: [-1.0, -1.0, 1.0],
-            color: [0.0, 0.0, 1.0],
-        },
-        Vertex {
-            vertices: [1.0, -1.0, 1.0],
-            color: [0.0, 0.0, 1.0],
-        },
-        Vertex {
-            vertices: [1.0, 1.0, 1.0],
-            color: [0.0, 0.0, 1.0],
-        },
-        Vertex {
-            vertices: [-1.0, 1.0, 1.0],
-            color: [0.0, 0.0, 1.0],
-        },
+        [-1.0, -1.0, 1.0],
+        [1.0, -1.0, 1.0],
+        [1.0, 1.0, 1.0],
+        [-1.0, 1.0, 1.0],
         // bottom (0, 0, -1)
-        Vertex {
-            vertices: [-1.0, -1.0, -1.0],
-            color: [1.0, 0.5, 0.0],
-        },
-        Vertex {
-            vertices: [-1.0, 1.0, -1.0],
-            color: [1.0, 0.5, 0.0],
-        },
-        Vertex {
-            vertices: [1.0, 1.0, -1.0],
-            color: [1.0, 0.5, 0.0],
-        },
-        Vertex {
-            vertices: [1.0, -1.0, -1.0],
-            color: [1.0, 0.5, 0.0],
-        },
+        [-1.0, -1.0, -1.0],
+        [-1.0, 1.0, -1.0],
+        [1.0, 1.0, -1.0],
+        [1.0, -1.0, -1.0],
         // right (1, 0, 0)
-        Vertex {
-            vertices: [1.0, -1.0, -1.0],
-            color: [1.0, 0.0, 0.0],
-        },
-        Vertex {
-            vertices: [1.0, 1.0, -1.0],
-            color: [1.0, 0.0, 0.0],
-        },
-        Vertex {
-            vertices: [1.0, 1.0, 1.0],
-            color: [1.0, 0.0, 0.0],
-        },
-        Vertex {
-            vertices: [1.0, -1.0, 1.0],
-            color: [1.0, 0.0, 0.0],
-        },
+        [1.0, -1.0, -1.0],
+        [1.0, 1.0, -1.0],
+        [1.0, 1.0, 1.0],
+        [1.0, -1.0, 1.0],
         // left (-1, 0, 0)
-        Vertex {
-            vertices: [-1.0, -1.0, -1.0],
-            color: [0.0, 1.0, 1.0],
-        },
-        Vertex {
-            vertices: [-1.0, -1.0, 1.0],
-            color: [0.0, 1.0, 1.0],
-        },
-        Vertex {
-            vertices: [-1.0, 1.0, 1.0],
-            color: [0.0, 1.0, 1.0],
-        },
-        Vertex {
-            vertices: [-1.0, 1.0, -1.0],
-            color: [0.0, 1.0, 1.0],
-        },
+        [-1.0, -1.0, -1.0],
+        [-1.0, -1.0, 1.0],
+        [-1.0, 1.0, 1.0],
+        [-1.0, 1.0, -1.0],
         // front (0, 1, 0)
-        Vertex {
-            vertices: [-1.0, 1.0, -1.0],
-            color: [0.0, 1.0, 0.0],
-        },
-        Vertex {
-            vertices: [-1.0, 1.0, 1.0],
-            color: [0.0, 1.0, 0.0],
-        },
-        Vertex {
-            vertices: [1.0, 1.0, 1.0],
-            color: [0.0, 1.0, 0.0],
-        },
-        Vertex {
-            vertices: [1.0, 1.0, -1.0],
-            color: [0.0, 1.0, 0.0],
-        },
+        [-1.0, 1.0, -1.0],
+        [-1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0],
+        [1.0, 1.0, -1.0],
         // back (0, -1, 0)
-        Vertex {
-            vertices: [-1.0, -1.0, -1.0],
-            color: [1.0, 0.0, 1.0],
-        },
-        Vertex {
-            vertices: [1.0, -1.0, -1.0],
-            color: [1.0, 0.0, 1.0],
-        },
-        Vertex {
-            vertices: [1.0, -1.0, 1.0],
-            color: [1.0, 0.0, 1.0],
-        },
-        Vertex {
-            vertices: [-1.0, -1.0, 1.0],
-            color: [1.0, 0.0, 1.0],
-        },
+        [-1.0, -1.0, -1.0],
+        [1.0, -1.0, -1.0],
+        [1.0, -1.0, 1.0],
+        [-1.0, -1.0, 1.0],
     ];
+
+    let vertex_data: Vec<Vertex> = positions
+        .iter()
+        .map(|&p| Vertex {
+            vertices: p,
+            color: gradient_color(p),
+        })
+        .collect();
 
     let index_data: Vec<u16> = vec![
         0, 1, 2, 2, 3, 0, // top
@@ -403,7 +345,7 @@ fn create_vertices() -> (Vec<Vertex>, Vec<u16>) {
         20, 21, 22, 22, 23, 20, // back
     ];
 
-    (vertex_data.to_vec(), index_data)
+    (vertex_data, index_data)
 }
 
 fn main() -> anyhow::Result<()> {
