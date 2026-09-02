@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 use wgpu::{
     BackendOptions, Backends, InstanceFlags, MemoryBudgetThresholds, include_wgsl,
     util::DeviceExt,
@@ -9,6 +10,7 @@ struct State<'window> {
     surface: wgpu::Surface<'window>,
     config: wgpu::SurfaceConfiguration,
     vertex_buffer: wgpu::Buffer,
+    uniform_buf: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     index_count: u32,
     window: Arc<Window>,
@@ -17,10 +19,11 @@ struct State<'window> {
     render_pipeline: wgpu::RenderPipeline,
     bind_group: wgpu::BindGroup,
     size: winit::dpi::PhysicalSize<u32>,
+    start_time: Instant,
 }
 
 impl<'window> State<'window> {
-    fn generate_matrix(aspect_ratio: f32) -> glam::Mat4 {
+    fn generate_matrix(aspect_ratio: f32, rotation: f32) -> glam::Mat4 {
         let projection = glam::camera::rh::proj::directx::perspective(
             std::f32::consts::FRAC_PI_4,
             aspect_ratio,
@@ -32,7 +35,8 @@ impl<'window> State<'window> {
             glam::Vec3::ZERO,
             glam::Vec3::Z,
         );
-        projection * view
+        let rotation = glam::Mat4::from_axis_angle(glam::Vec3::Z, rotation);
+        projection * view * rotation
     }
 }
 
@@ -92,7 +96,7 @@ impl<'window> State<'window> {
         // Configure the surface before we try to draw to it.
         surface.configure(&device, &config);
 
-        let mx_total = Self::generate_matrix(config.width as f32 / config.height as f32);
+        let mx_total = Self::generate_matrix(config.width as f32 / config.height as f32, 0.0);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
@@ -201,6 +205,7 @@ impl<'window> State<'window> {
             surface,
             config,
             vertex_buffer,
+            uniform_buf,
             window,
             queue,
             device,
@@ -209,10 +214,20 @@ impl<'window> State<'window> {
             size,
             index_buffer,
             index_count: index_data.len() as u32,
+            start_time: Instant::now(),
         })
     }
 
     fn render(&mut self) {
+        let elapsed = self.start_time.elapsed().as_secs_f32();
+        let rotation = elapsed; 
+        let aspect_ratio = self.size.width as f32 / self.size.height as f32;
+        let matrix = Self::generate_matrix(aspect_ratio, rotation);
+        let matrix_ref: &[f32; 16] = matrix.as_ref();
+        self.queue
+            .write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(matrix_ref));
+
+        // Get the current frame texture from the surface.
         let output = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
             wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => {
@@ -266,6 +281,7 @@ impl<'window> State<'window> {
         }
         self.queue.submit(Some(encoder.finish()));
 
+        // Present the frame to the screen.
         output.present();
     }
 
